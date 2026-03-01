@@ -11,13 +11,19 @@ import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
 import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume, zkDelete, getProfile } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, ChevronDown, ChevronUp } from 'lucide-react';
+import algosdk from 'algosdk';
+import { Ripple } from '@/components/ui/ripple';
+import NeoButton from '@/components/ui/NeoButton';
+import Image from 'next/image';
+import TransactionNotification from '@/components/ui/TransactionNotification';
+import ErrorNotification from '@/components/ui/ErrorNotification';
 import Image from 'next/image';
 import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, Fingerprint, FileText, Trash2, UserCircle } from 'lucide-react';
 import algosdk from 'algosdk';
 import { Ripple } from '@/components/ui/ripple';
 import NeoButton from '@/components/ui/NeoButton';
 import { QRCodeSVG } from 'qrcode.react';
-
 // Algorand testnet node for sending opt-in transactions
 const algodClient = new algosdk.Algodv2(
   '',
@@ -38,6 +44,7 @@ export default function StudentPage() {
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
 
   // Show prompt to join network after upload
   const [showAlumniPrompt, setShowAlumniPrompt] = useState(false);
@@ -69,7 +76,15 @@ export default function StudentPage() {
       return uploadCredential(formData, activeAddress);
     },
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Credential request submitted!' });
+      toast({
+        title: "",
+        description: (
+          <TransactionNotification
+            title="REQUEST SUBMITTED"
+            message="Your credential verify request is on its way."
+          />
+        ),
+      });
       setCredentialId('');
       setDegreeName('');
       setGraduationYear('');
@@ -79,7 +94,13 @@ export default function StudentPage() {
       setShowAlumniPrompt(true);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "",
+        description: (
+          <ErrorNotification title="SUBMISSION FAILED" message={error.message} />
+        ),
+        variant: 'destructive',
+      });
     },
   });
 
@@ -110,14 +131,25 @@ export default function StudentPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: '🎉 NFT Claimed!',
-        description: `Credential NFT (Asset ID: ${data.assetId}) has been transferred to your wallet.`,
+        title: "",
+        description: (
+          <TransactionNotification
+            title="NFT CLAIMED"
+            message={`Asset #${data.assetId} transferred to your wallet.`}
+          />
+        ),
       });
       queryClient.invalidateQueries({ queryKey: ['pending-claims'] });
       queryClient.invalidateQueries({ queryKey: ['my-requests'] });
     },
     onError: (error: Error) => {
-      toast({ title: 'Claim Failed', description: error.message, variant: 'destructive' });
+      toast({
+        title: "",
+        description: (
+          <ErrorNotification title="CLAIM FAILED" message={error.message} />
+        ),
+        variant: 'destructive',
+      });
     },
   });
 
@@ -135,7 +167,13 @@ export default function StudentPage() {
       setMatches(data.matches || []);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({
+        title: "",
+        description: (
+          <ErrorNotification title="MATCHING FAILED" message={error.message} />
+        ),
+        variant: 'destructive',
+      });
     },
   });
 
@@ -297,7 +335,7 @@ export default function StudentPage() {
                       className="scale-90"
                     >
                       <Gift className="h-4 w-4 mr-2" />
-                      {claimMutation.isPending ? 'Processing...' : 'Claim NFT'}
+                      {claimMutation.isPending && claimMutation.variables?.requestId === claim.id ? 'Processing...' : 'Claim NFT'}
                     </NeoButton>
                   </div>
                 ))}
@@ -405,69 +443,111 @@ export default function StudentPage() {
                   <p className="text-zinc-500">No requests submitted yet</p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {requests?.data?.map((req: any) => (
-                    <Card key={req.id} className="bg-black/40 border-2 border-zinc-800 hover:border-zinc-600 transition-colors overflow-hidden">
+                <div className="space-y-4">
+                  {requests?.data?.map((req: any, idx: number) => (
+                    <Card
+                      key={req.id}
+                      className={`bg-zinc-900/50 border-2 transition-all duration-300 overflow-hidden ${expandedRequestId === req.id ? 'border-blue-500 shadow-[5px_5px_0px_0px_rgba(59,130,246,0.2)]' : 'border-zinc-800 hover:border-zinc-700'
+                        }`}
+                    >
                       <CardContent className="p-0">
-                        <div className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <p className="text-xl font-black text-white uppercase tracking-tight outfit-bold underline decoration-blue-500 decoration-4 underline-offset-4">
-                                {req.degree_name}
-                              </p>
-                              <p className="text-sm text-zinc-500 mt-3 font-mono">ID: {req.credential_id}</p>
+                        {/* Accordion Header */}
+                        <button
+                          onClick={() => setExpandedRequestId(expandedRequestId === req.id ? null : req.id)}
+                          className="w-full flex items-center justify-between p-5 text-left group transition-colors hover:bg-white/5"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-lg transition-colors ${expandedRequestId === req.id ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-500'
+                              }`}>
+                              <Shield className="h-5 w-5" />
                             </div>
-                            <div className="flex items-center">
+                            <div>
+                              <p className="font-black text-lg text-white uppercase tracking-tight outfit-bold">
+                                Document {idx + 1}
+                              </p>
+                              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">
+                                {new Date(req.created_at || Date.now()).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <div className="hidden sm:block">
                               {req.status === 'PENDING' && (
-                                <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
                                   <Clock className="h-3 w-3" /> Pending
                                 </span>
                               )}
                               {req.status === 'MINTED' && (
-                                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
-                                  <Gift className="h-3 w-3" /> Ready to Claim
+                                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                                  <Gift className="h-3 w-3" /> Ready
                                 </span>
                               )}
                               {req.status === 'APPROVED' && (
-                                <span className="bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                                  <CheckCircle className="h-3 w-3" /> Approved
+                                <span className="bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                                  <CheckCircle className="h-3 w-3" /> Minted
                                 </span>
                               )}
                               {req.status === 'REJECTED' && (
-                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5">
                                   <XCircle className="h-3 w-3" /> Rejected
                                 </span>
                               )}
                             </div>
+                            {expandedRequestId === req.id ? (
+                              <ChevronUp className="h-5 w-5 text-zinc-500" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-zinc-500" />
+                            )}
                           </div>
+                        </button>
 
-                          {req.credentials?.[0] && (
-                            <div className="mt-6 border-t border-zinc-800 pt-6 space-y-4">
-                              <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 space-y-3">
-                                <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider">
-                                  <Shield className="h-4 w-4" />
-                                  Algorand Asset Details
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 text-xs">
-                                  <div className="space-y-1">
-                                    <p className="text-zinc-500 uppercase font-black tracking-widest">Asset ID</p>
-                                    <p className="font-mono text-white text-base">{req.credentials[0].nft_asset_id}</p>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <p className="text-zinc-500 uppercase font-black tracking-widest">Status</p>
-                                    <p className="text-green-500 font-bold">VERIFIED ON-CHAIN</p>
-                                  </div>
-                                </div>
-                                {req.credentials[0].issued_tx_hash && (
-                                  <div className="space-y-1 pt-2">
-                                    <p className="text-zinc-500 uppercase font-black tracking-widest text-[10px]">Transaction Hash</p>
-                                    <p className="font-mono text-zinc-400 truncate text-[10px]" title={req.credentials[0].issued_tx_hash}>
-                                      {req.credentials[0].issued_tx_hash}
-                                    </p>
-                                  </div>
-                                )}
+                        {/* Accordion Content */}
+                        {expandedRequestId === req.id && (
+                          <div className="px-6 pb-6 border-t border-zinc-800 pt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="grid md:grid-cols-2 gap-6 mb-6">
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Degree Title</p>
+                                <p className="text-xl font-black text-white uppercase tracking-tight outfit-bold underline decoration-blue-500 decoration-2 underline-offset-4">
+                                  {req.degree_name}
+                                </p>
                               </div>
+                              <div className="space-y-1">
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Credential ID</p>
+                                <p className="font-mono text-blue-400 text-sm bg-blue-500/5 px-2 py-0.5 rounded inline-block">
+                                  {req.credential_id}
+                                </p>
+                              </div>
+                            </div>
 
+                            {req.credentials?.[0] && (
+                              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                                <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-5 space-y-4">
+                                  <div className="flex items-center gap-2 text-blue-400 font-black text-[10px] uppercase tracking-widest">
+                                    <Shield className="h-4 w-4" />
+                                    Blockchain Identity
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                      <p className="text-zinc-500 uppercase font-black tracking-widest text-[9px]">Asset ID</p>
+                                      <p className="font-mono text-white text-lg">{req.credentials[0].nft_asset_id}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <p className="text-zinc-500 uppercase font-black tracking-widest text-[9px]">Network Status</p>
+                                      <p className="text-green-500 font-black text-xs">MINTED & VERIFIED</p>
+                                    </div>
+                                  </div>
+                                  {req.credentials[0].issued_tx_hash && (
+                                    <div className="space-y-1">
+                                      <p className="text-zinc-500 uppercase font-black tracking-widest text-[9px]">Last Transaction</p>
+                                      <p className="font-mono text-zinc-400 truncate text-[9px]" title={req.credentials[0].issued_tx_hash}>
+                                        {req.credentials[0].issued_tx_hash}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-3 mt-4">
                               {/* Original Document Details */}
                               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
                                 <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm uppercase tracking-wider mb-2">
@@ -501,13 +581,30 @@ export default function StudentPage() {
                                 </a>
                                 {req.credentials[0].issued_tx_hash && (
                                   <a
-                                    href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                    href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
+                                    className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-[10px] font-black uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 border border-zinc-700"
                                   >
-                                    Transaction <ExternalLink className="h-3 w-3" />
+                                    Explorer <ExternalLink className="h-3 w-3" />
                                   </a>
+
+                                  {req.credentials[0].issued_tx_hash && (
+                                    <a
+                                      href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-[10px] font-black uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 border border-zinc-700"
+                                    >
+                                      Details <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                                 )}
                                 <button
                                   onClick={() => deleteMutation.mutate(req.credentials[0].nft_asset_id)}
@@ -550,6 +647,10 @@ export default function StudentPage() {
         </div>
 
         {/* AI Mentor Matcher Section */}
+
+        <div className="mt-20">
+          <div className="mb-8">
+            <h2 className="text-3xl font-black uppercase tracking-tighter outfit-bold text-white flex items-center gap-3">
         <div className="mt-12 mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both relative">
           <div className="absolute inset-0 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
 
@@ -561,6 +662,38 @@ export default function StudentPage() {
             <p className="text-zinc-400 mt-2 font-medium">Upload your resume and let our Gemini AI find the perfect alumni mentors based on your skills and background.</p>
           </div>
 
+          <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white">
+            <CardContent className="p-8">
+              <div className="grid lg:grid-cols-3 gap-12">
+                {/* Upload Section */}
+                <div className="col-span-1 space-y-6 lg:border-r-2 border-zinc-800 lg:pr-8">
+                  <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight outfit-bold flex items-center gap-2">
+                      <span className="bg-blue-500 text-white w-7 h-7 rounded-sm flex items-center justify-center text-sm">1</span>
+                      Upload Resume
+                    </h3>
+                    <p className="text-sm text-zinc-500 mt-2 font-medium">Must be a PDF document containing your work experience and skills.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="resumeDocument" className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Resume (PDF)</Label>
+                    <Input
+                      id="resumeDocument"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                      className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white cursor-pointer h-12 pt-2"
+                    />
+                  </div>
+
+                  <NeoButton
+                    className="w-full"
+                    onClick={() => matchMutation.mutate()}
+                    disabled={!resumeFile || matchMutation.isPending}
+                    hoverText="Find Matches"
+                  >
+                    {matchMutation.isPending ? 'Analyzing with AI...' : 'Find Matches'}
+                  </NeoButton>
           <Card className="bg-zinc-900/40 border-zinc-800/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
             <CardContent className="p-8">
               <div className="grid lg:grid-cols-3 gap-10">
@@ -605,6 +738,19 @@ export default function StudentPage() {
 
                 {/* Results Section */}
                 <div className="col-span-2">
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight outfit-bold mb-6 flex items-center gap-2">
+                    <span className="bg-blue-500 text-white w-7 h-7 rounded-sm flex items-center justify-center text-sm">2</span>
+                    Your AI Matches
+                  </h3>
+
+                  {!matches || matches.length === 0 ? (
+                    <div className="h-64 flex items-center justify-center bg-black/40 rounded-2xl border-4 border-dashed border-zinc-800 group hover:border-zinc-700 transition-colors">
+                      <div className="text-center px-4">
+                        <Sparkles className="h-10 w-10 text-zinc-700 mx-auto mb-4 group-hover:text-blue-500 transition-colors" />
+                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">
+                          {matchMutation.isPending ? 'Gemini AI is reading your resume...' : 'Upload your resume to see your top matches.'}
+                        </p>
+                      </div>
                   <h3 className="text-xl font-bold font-mono tracking-tight text-white mb-6 flex items-center gap-2">
                     <span className="text-blue-500 font-black">02 //</span> Your AI Matches
                   </h3>
@@ -626,10 +772,23 @@ export default function StudentPage() {
                           <p className="text-zinc-500 font-medium max-w-sm">Upload your resume to see your top matches.</p>
                         </div>
                       )}
-                    </div>
+                        </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {matches.map((match: any, idx: number) => (
+                        <div key={idx} className="bg-black/60 p-6 rounded-2xl border-2 border-zinc-800 hover:border-blue-500/50 transition-all duration-300 shadow-xl group">
+                          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-1">
+                                <h4 className="font-black text-xl text-white uppercase tracking-tight outfit-bold">{match.alumnus?.name}</h4>
+                                {match.matchPercentage && (
+                                  <div className="bg-green-500/10 text-green-500 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-green-500/20 tracking-tighter">
+                                    {match.matchPercentage}% Match
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-sm font-bold text-blue-400 uppercase tracking-widest leading-none">{match.alumnus?.status}</p>
+
                         <div key={idx} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:border-zinc-700 transition-colors relative overflow-hidden group">
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
@@ -648,7 +807,28 @@ export default function StudentPage() {
                                 <UserPlus className="h-3 w-3" /> Connect
                               </button>
                             </div>
+                            <NeoButton
+                              onClick={() => { }}
+                              hoverText="Connect"
+                              className="scale-90"
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Connect
+                            </NeoButton>
                           </div>
+
+                          <div className="bg-blue-500/5 border-l-4 border-blue-500 p-4 mt-6 rounded-r-xl">
+                            <div className="flex items-start gap-3">
+                              <Sparkles className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+                              <p className="text-sm text-zinc-300 leading-relaxed italic font-medium">
+                                {match.reason}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 mt-6">
+                            {match.alumnus?.expertise.map((skill: string, sIdx: number) => (
+                              <span key={sIdx} className="bg-zinc-800 text-zinc-400 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border border-zinc-700 group-hover:border-zinc-600 transition-colors">
 
                           <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 mt-4 relative">
                             <Sparkles className="h-4 w-4 text-zinc-600 absolute top-4 left-4" />
