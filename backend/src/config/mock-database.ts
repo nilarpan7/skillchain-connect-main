@@ -23,10 +23,38 @@ interface Credential {
   revoked?: boolean;
 }
 
+export interface ChatMessage {
+  id: string;
+  sender_wallet: string;
+  receiver_wallet: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface StudentProfile {
+  wallet: string;
+  name: string;
+  expertise: string[];
+  status: string;
+  offering: string;
+}
+
 class MockDatabase {
   private credentialRequests: CredentialRequest[] = [];
   private credentials: Credential[] = [];
+  private chatMessages: ChatMessage[] = [];
+  private studentProfiles: StudentProfile[] = [];
   private idCounter = 1;
+
+  // New public method to access credentialRequests for the alumni route
+  getAllCredentialRequests() {
+    return this.credentialRequests;
+  }
+
+  // New public method to access credentials for the alumni route
+  getAllCredentials() {
+    return this.credentials;
+  }
 
   async insertCredentialRequest(data: Omit<CredentialRequest, 'id' | 'created_at'>) {
     const request: CredentialRequest = {
@@ -114,6 +142,44 @@ class MockDatabase {
         credentials: this.credentials.filter(c => c.credential_request_id === r.id)
       }));
     return { data: requests, error: null };
+  }
+
+  getChatMessages(wallet1: string, wallet2: string) {
+    const msgs = this.chatMessages.filter(m =>
+      (m.sender_wallet === wallet1 && m.receiver_wallet === wallet2) ||
+      (m.sender_wallet === wallet2 && m.receiver_wallet === wallet1)
+    );
+    // Sort by timestamp
+    return msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  insertChatMessage(data: Omit<ChatMessage, 'id' | 'timestamp'>) {
+    const msg: ChatMessage = {
+      ...data,
+      id: String(this.idCounter++),
+      timestamp: new Date().toISOString()
+    };
+    this.chatMessages.push(msg);
+    return msg;
+  }
+
+  // --- Profile Methods ---
+  getAllProfiles(): StudentProfile[] {
+    return this.studentProfiles;
+  }
+
+  getProfile(wallet: string): StudentProfile | undefined {
+    return this.studentProfiles.find((p) => p.wallet === wallet);
+  }
+
+  upsertProfile(profile: StudentProfile): StudentProfile {
+    const index = this.studentProfiles.findIndex((p) => p.wallet === profile.wallet);
+    if (index !== -1) {
+      this.studentProfiles[index] = profile;
+    } else {
+      this.studentProfiles.push(profile);
+    }
+    return profile;
   }
 }
 

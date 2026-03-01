@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
-import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume, zkDelete } from '@/lib/api';
+import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume, zkDelete, getProfile } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, Fingerprint, FileText, Trash2 } from 'lucide-react';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, Fingerprint, FileText, Trash2, UserCircle } from 'lucide-react';
 import algosdk from 'algosdk';
 import { Ripple } from '@/components/ui/ripple';
 import NeoButton from '@/components/ui/NeoButton';
@@ -38,6 +38,9 @@ export default function StudentPage() {
 
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [matches, setMatches] = useState<any[]>([]);
+
+  // Show prompt to join network after upload
+  const [showAlumniPrompt, setShowAlumniPrompt] = useState(false);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests', activeAddress],
@@ -72,6 +75,8 @@ export default function StudentPage() {
       setGraduationYear('');
       setFile(null);
       queryClient.invalidateQueries({ queryKey: ['my-requests'] });
+      // Trigger the modal redirect path!
+      setShowAlumniPrompt(true);
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -182,6 +187,44 @@ export default function StudentPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col bg-black text-white overflow-x-hidden">
+
+      {/* ALUMNI INTERCEPTOR MODAL */}
+      {showAlumniPrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-md bg-zinc-900 border-4 border-emerald-500/50 shadow-[15px_15px_0px_0px_rgba(16,185,129,0.2)]">
+            <CardHeader className="text-center pb-2 pt-8">
+              <div className="mx-auto bg-emerald-500/10 p-4 rounded-2xl mb-4 border border-emerald-500/20">
+                <Sparkles className="h-10 w-10 text-emerald-400" />
+              </div>
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter outfit-bold text-white">
+                Are you an Alumni?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4 text-center text-zinc-400">
+              <p className="text-lg text-emerald-500 font-bold tracking-tight">Credential Request Submitted!</p>
+              <p>Since you're uploading your records, would you like to join the prestigious <strong>Alumni Network</strong>? AI will automatically build your mentorship profile in 5 seconds.</p>
+
+              <div className="flex flex-col gap-3 pt-4">
+                <NeoButton
+                  onClick={() => router.push('/alumni/join')}
+                  hoverText="Setup Profile"
+                  className="w-full text-lg border-emerald-500/50 text-emerald-400 hover:text-emerald-300"
+                >
+                  <UserPlus className="h-5 w-5 mr-3" />
+                  Yes, Let's Go
+                </NeoButton>
+                <NeoButton
+                  onClick={() => setShowAlumniPrompt(false)}
+                  className="w-full text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-500 scale-90"
+                >
+                  Not Yet
+                </NeoButton>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Ripple />
       <nav className="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl z-50">
         <div className="bg-black/60 backdrop-blur-md border border-white/20 px-8 py-3 rounded-full flex justify-between items-center shadow-2xl">
@@ -194,7 +237,7 @@ export default function StudentPage() {
           <div className="flex items-center gap-4">
             <NeoButton
               onClick={() => router.push('/')}
-              hoverText="Back"
+              hoverText="Home"
               className="scale-90"
             >
               Home
@@ -202,9 +245,16 @@ export default function StudentPage() {
             <NeoButton
               onClick={() => router.push('/alumni')}
               hoverText="Explore"
-              className="scale-90 whitespace-nowrap"
+              className="scale-90 whitespace-nowrap hidden md:flex"
             >
               Alumni Network
+            </NeoButton>
+            <NeoButton
+              onClick={() => router.push('/alumni/join')}
+              hoverText="Join"
+              className="scale-90 border-emerald-500/50 text-emerald-400 hover:text-emerald-300 hidden md:flex"
+            >
+              Join Network
             </NeoButton>
             <WalletConnect />
           </div>
@@ -257,7 +307,7 @@ export default function StudentPage() {
         )}
 
         <div className="grid lg:grid-cols-2 gap-12">
-          {/* Upload Form */}
+          {/* Upload Form (Centered or spanning columns depending on layout, here we let it take one column) */}
           <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white font-black uppercase tracking-tighter outfit-bold text-2xl leading-none">

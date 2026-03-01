@@ -44,7 +44,27 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <Image src="/logo-navbar.png?v=1" alt="AlgoVault Logo" width={180} height={45} className="object-contain" />
           </div>
-          <WalletConnect />
+          <div className="flex items-center gap-4">
+            {isConnected && (
+              <>
+                <NeoButton
+                  onClick={() => router.push('/alumni')}
+                  hoverText="Explore"
+                  className="hidden md:flex scale-90"
+                >
+                  Alumni Network
+                </NeoButton>
+                <NeoButton
+                  onClick={() => router.push('/alumni/join')}
+                  hoverText="Join"
+                  className="hidden md:flex scale-90 border-emerald-500/50 text-emerald-400 hover:text-emerald-300"
+                >
+                  Join Network
+                </NeoButton>
+              </>
+            )}
+            <WalletConnect />
+          </div>
         </div>
       </nav>
 

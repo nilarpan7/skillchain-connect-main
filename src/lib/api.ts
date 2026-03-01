@@ -114,3 +114,24 @@ export async function zkDelete(asset_id: number, proof: any, publicSignals: any,
 
   return response.json();
 }
+
+export async function getProfile(wallet: string) {
+  return apiRequest(`/api/profile/${wallet}`, { method: 'GET' });
+}
+
+export async function autoGenerateProfile(formData: FormData, wallet: string) {
+  const response = await fetch(`${API_URL}/api/profile/auto-generate`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': wallet,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to auto-generate profile');
+  }
+
+  return response.json();
+}

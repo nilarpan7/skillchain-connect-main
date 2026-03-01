@@ -10,133 +10,35 @@ import { Ripple } from '@/components/ui/ripple';
 import NeoButton from '@/components/ui/NeoButton';
 import Image from 'next/image';
 
-// Mock data for alumni since we are transitioning the backend
-const ALUMNI_DATA = [
-    {
-        id: 1,
-        name: "Aarav Sharma",
-        wallet: "IN1A2B...X9Y8Z7",
-        degree: "B.Tech Computer Science",
-        year: 2023,
-        expertise: ["Blockchain Development", "Smart Contracts", "Solidity"],
-        status: "Blockchain Engineer at Polygon",
-        offering: "Web3 Mentorship & Smart Contract Guidance"
-    },
-    {
-        id: 2,
-        name: "Ishita Verma",
-        wallet: "IN2C3D...W6V5U4",
-        degree: "B.Tech Information Technology",
-        year: 2022,
-        expertise: ["React", "Next.js", "UI/UX", "Tailwind CSS"],
-        status: "Frontend Developer at Razorpay",
-        offering: "Frontend Roadmap & Portfolio Review"
-    },
-    {
-        id: 3,
-        name: "Rohan Banerjee",
-        wallet: "IN3E4F...T3S2R1",
-        degree: "M.Tech Cybersecurity",
-        year: 2023,
-        expertise: ["Web Security", "Smart Contract Auditing", "Penetration Testing"],
-        status: "Security Analyst at Infosys",
-        offering: "Cybersecurity Career Guidance"
-    },
-    {
-        id: 4,
-        name: "Sneha Iyer",
-        wallet: "IN4G5H...Q8P7O6",
-        degree: "B.Des UX Design",
-        year: 2021,
-        expertise: ["Figma", "Design Systems", "User Research", "Prototyping"],
-        status: "Product Designer at Swiggy",
-        offering: "UI/UX Portfolio & Case Study Mentorship"
-    },
-    {
-        id: 5,
-        name: "Aditya Kulkarni",
-        wallet: "IN5I6J...N5M4L3",
-        degree: "B.Tech Computer Engineering",
-        year: 2020,
-        expertise: ["Node.js", "Express", "MongoDB", "System Design"],
-        status: "Backend Engineer at Zomato",
-        offering: "Backend Development & System Design Prep"
-    },
-    {
-        id: 6,
-        name: "Meera Nair",
-        wallet: "IN6K7L...K2J1H0",
-        degree: "M.S. Data Science",
-        year: 2022,
-        expertise: ["Python", "Machine Learning", "SQL", "Power BI"],
-        status: "Data Scientist at Flipkart",
-        offering: "Data Science Roadmap & Interview Prep"
-    },
-    {
-        id: 7,
-        name: "Vikram Singh",
-        wallet: "IN7M8N...F9E8D7",
-        degree: "B.Tech Artificial Intelligence",
-        year: 2023,
-        expertise: ["Deep Learning", "NLP", "TensorFlow", "LLMs"],
-        status: "AI Engineer at TCS",
-        offering: "AI/ML Career & Project Guidance"
-    },
-    {
-        id: 8,
-        name: "Kavya Reddy",
-        wallet: "IN8O9P...C6B5A4",
-        degree: "B.Tech Electronics & Communication",
-        year: 2021,
-        expertise: ["Flutter", "React Native", "Firebase", "Mobile Architecture"],
-        status: "Mobile Developer at Paytm",
-        offering: "Mobile App Development Mentorship"
-    },
-    {
-        id: 9,
-        name: "Arjun Gupta",
-        wallet: "IN9Q0R...Z3Y2X1",
-        degree: "MBA Technology Management",
-        year: 2019,
-        expertise: ["Tech Consulting", "Business Strategy", "Digital Transformation"],
-        status: "Consultant at Deloitte India",
-        offering: "Consulting Career & Case Prep Guidance"
-    },
-    {
-        id: 10,
-        name: "Tanvi Deshpande",
-        wallet: "IN10S1T...U2V3W4",
-        degree: "B.Tech Computer Science",
-        year: 2020,
-        expertise: ["Product Management", "Agile", "User Research", "Roadmapping"],
-        status: "Product Manager at Microsoft India",
-        offering: "PM Career & Interview Mentorship"
-    },
-    {
-        id: 11,
-        name: "Rahul Chatterjee",
-        wallet: "IN11U2V...W5X6Y7",
-        degree: "B.Tech Information Technology",
-        year: 2018,
-        expertise: ["Startup Strategy", "SaaS", "Fundraising", "Growth"],
-        status: "Founder & CEO at EduTech Startup",
-        offering: "Startup Mentorship & Founder Advice"
-    },
-    {
-        id: 12,
-        name: "Pooja Malhotra",
-        wallet: "IN12X3Y...Z8A9B0",
-        degree: "B.Tech Cloud Computing",
-        year: 2022,
-        expertise: ["AWS", "Docker", "Kubernetes", "CI/CD"],
-        status: "DevOps Engineer at Wipro",
-        offering: "Cloud & DevOps Career Guidance"
-    }
-];
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+
+export interface Alumnus {
+    id: string;
+    name: string;
+    wallet: string;
+    degree: string;
+    year: number;
+    expertise: string[];
+    status: string;
+    offering: string;
+    isReal: boolean;
+}
+
 
 export default function AlumniPage() {
     const router = useRouter();
-    const { isConnected } = useWalletContext();
+    const { activeAddress, isConnected } = useWalletContext();
+    const { toast } = useToast();
+
+    const { data: alumniList = [], isLoading } = useQuery<Alumnus[]>({
+        queryKey: ['alumni'],
+        queryFn: async () => {
+            const res = await fetch('http://localhost:4000/api/alumni');
+            if (!res.ok) throw new Error('Failed to fetch alumni');
+            return res.json();
+        }
+    });
 
     if (!isConnected) {
         return (
@@ -186,6 +88,13 @@ export default function AlumniPage() {
                         >
                             My Dashboard
                         </NeoButton>
+                        <NeoButton
+                            onClick={() => router.push('/alumni/join')}
+                            hoverText="Join"
+                            className="scale-90 border-emerald-500/50 text-emerald-400 hover:text-emerald-300"
+                        >
+                            Join Network
+                        </NeoButton>
                         <WalletConnect />
                     </div>
                 </div>
@@ -203,7 +112,11 @@ export default function AlumniPage() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    {ALUMNI_DATA.map((alumnus) => (
+                    {isLoading ? (
+                        <div className="col-span-full text-center text-zinc-500 py-20 font-mono text-sm">
+                            Fetching verified alumni identities from ledger...
+                        </div>
+                    ) : alumniList.map((alumnus) => (
                         <Card key={alumnus.id} className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white overflow-hidden group">
                             <CardHeader className="pb-4 pt-6">
                                 <div className="flex justify-between items-start">
@@ -243,13 +156,30 @@ export default function AlumniPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-3 pt-4">
-                                    <NeoButton
-                                        onClick={() => { }}
-                                        hoverText="Message"
-                                        className="w-full"
-                                    >
-                                        Connect
-                                    </NeoButton>
+                                    {alumnus.wallet === activeAddress ? (
+                                        <div className="bg-emerald-500/10 border-2 border-emerald-500/20 text-emerald-400 font-bold uppercase tracking-widest text-center py-3 rounded-xl flex items-center justify-center gap-2">
+                                            <Shield className="h-5 w-5" />
+                                            Your Profile
+                                        </div>
+                                    ) : (
+                                        <NeoButton
+                                            onClick={() => {
+                                                if (alumnus.isReal) {
+                                                    router.push(`/chat/${alumnus.wallet}`);
+                                                } else {
+                                                    toast({
+                                                        title: "Demo Profile",
+                                                        description: "Chat is only available with real verified students.",
+                                                        variant: "destructive"
+                                                    });
+                                                }
+                                            }}
+                                            hoverText="Message"
+                                            className="w-full"
+                                        >
+                                            Connect
+                                        </NeoButton>
+                                    )}
                                     <NeoButton
                                         onClick={() => { }}
                                         hoverText="On-Chain"
