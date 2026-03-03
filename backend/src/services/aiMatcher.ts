@@ -1,13 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ALUMNI_DATA } from "../data/alumni";
+import '../config/env'; // Ensure dotenv is loaded
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const MAX_RETRIES = 3;
+
+async function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export async function matchResumeToAlumni(resumeText: string) {
-    if (!process.env.GEMINI_API_KEY) {
-        throw new Error("Gemini API Key is not configured.");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("Gemini API Key is not configured. Set GEMINI_API_KEY in your .env file.");
     }
 
+    console.log('[AI Matcher] Using API key:', apiKey.substring(0, 8) + '...');
+
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
@@ -30,15 +39,48 @@ export async function matchResumeToAlumni(resumeText: string) {
     DO NOT wrap the response in markdown blocks like \`\`\`json. Just return the raw JSON array string.
   `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
+    let lastError: any;
 
-    try {
-        // Strip markdown formatting if the model still returns it
-        const cleanJson = responseText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-        return JSON.parse(cleanJson);
-    } catch (error) {
-        console.error("Failed to parse Gemini response:", responseText);
-        throw new Error("Failed to parse AI matching response.");
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            console.log(`[AI Matcher] Attempt ${attempt}/${MAX_RETRIES} - Calling Gemini API...`);
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text().trim();
+            console.log('[AI Matcher] Gemini responded, length:', responseText.length);
+
+            // Strip markdown formatting if the model still returns it
+            const cleanJson = responseText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (error: any) {
+            lastError = error;
+            const isRateLimited = error?.status === 429
+                || error?.message?.includes('429')
+                || error?.message?.includes('Too Many Requests')
+                || error?.message?.includes('quota');
+
+            console.error(`[AI Matcher] Attempt ${attempt} failed:`, error?.message || error);
+
+            if (isRateLimited && attempt < MAX_RETRIES) {
+                // Parse retry delay from error, or fallback to 30s
+                let delayMs = 30000;
+                const retryMatch = error?.message?.match(/retry in ([\d.]+)s/i);
+                if (retryMatch) {
+                    delayMs = Math.ceil(parseFloat(retryMatch[1]) * 1000) + 2000;
+                }
+                console.warn(`[AI Matcher] Rate limited. Retrying in ${Math.round(delayMs / 1000)}s...`);
+                await sleep(delayMs);
+                continue;
+            }
+
+            if (attempt < MAX_RETRIES) {
+                // For non-rate-limit errors, retry with a short delay
+                console.warn(`[AI Matcher] Retrying in 3s...`);
+                await sleep(3000);
+                continue;
+            }
+        }
     }
+
+    console.error("[AI Matcher] All retries exhausted. Full error:", JSON.stringify(lastError, null, 2));
+    throw new Error(`AI matching failed: ${lastError?.message || 'Unknown error after all retries'}`);
 }

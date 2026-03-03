@@ -11,18 +11,13 @@ import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
 import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume, zkDelete, getProfile } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, ChevronDown, ChevronUp, Fingerprint, FileText, Trash2, UserCircle } from 'lucide-react';
 import algosdk from 'algosdk';
 import { Ripple } from '@/components/ui/ripple';
 import NeoButton from '@/components/ui/NeoButton';
 import Image from 'next/image';
 import TransactionNotification from '@/components/ui/TransactionNotification';
 import ErrorNotification from '@/components/ui/ErrorNotification';
-import Image from 'next/image';
-import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight, Sparkles, UserPlus, Fingerprint, FileText, Trash2, UserCircle } from 'lucide-react';
-import algosdk from 'algosdk';
-import { Ripple } from '@/components/ui/ripple';
-import NeoButton from '@/components/ui/NeoButton';
 import { QRCodeSVG } from 'qrcode.react';
 // Algorand testnet node for sending opt-in transactions
 const algodClient = new algosdk.Algodv2(
@@ -163,7 +158,15 @@ export default function StudentPage() {
       return matchResume(formData, activeAddress);
     },
     onSuccess: (data) => {
-      toast({ title: 'Success', description: 'Successfully analyzed resume and matched with alumni!' });
+      toast({
+        title: "",
+        description: (
+          <TransactionNotification
+            title="ANALYSIS COMPLETE"
+            message="Successfully analyzed resume and matched with alumni!"
+          />
+        ),
+      });
       setMatches(data.matches || []);
     },
     onError: (error: Error) => {
@@ -224,7 +227,7 @@ export default function StudentPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-black text-white overflow-x-hidden">
+    <div className="relative min-h-screen flex flex-col bg-black text-white overflow-hidden">
 
       {/* ALUMNI INTERCEPTOR MODAL */}
       {showAlumniPrompt && (
@@ -263,7 +266,9 @@ export default function StudentPage() {
         </div>
       )}
 
-      <Ripple />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <Ripple />
+      </div>
       <nav className="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl z-50">
         <div className="bg-black/60 backdrop-blur-md border border-white/20 px-8 py-3 rounded-full flex justify-between items-center shadow-2xl">
           <div className="flex items-center gap-3">
@@ -547,96 +552,83 @@ export default function StudentPage() {
                                   )}
                                 </div>
 
-                                <div className="flex gap-3 mt-4">
-                              {/* Original Document Details */}
-                              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
-                                <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm uppercase tracking-wider mb-2">
-                                  <FileText className="h-4 w-4" />
-                                  Original Document
-                                </div>
-                                <div className="space-y-4 text-xs">
-                                  <div className="space-y-1">
-                                    <p className="text-zinc-500 uppercase font-black tracking-widest text-[10px]">SHA-256 Hash</p>
-                                    <p className="font-mono text-zinc-300 break-all bg-black p-2 rounded-lg border border-zinc-800">{req.document_hash}</p>
+                                <div className="flex flex-col gap-3 mt-4">
+                                  {/* Original Document Details */}
+                                  <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+                                    <div className="flex items-center gap-2 text-zinc-400 font-bold text-sm uppercase tracking-wider mb-2">
+                                      <FileText className="h-4 w-4" />
+                                      Original Document
+                                    </div>
+                                    <div className="space-y-4 text-xs">
+                                      <div className="space-y-1">
+                                        <p className="text-zinc-500 uppercase font-black tracking-widest text-[10px]">SHA-256 Hash</p>
+                                        <p className="font-mono text-zinc-300 break-all bg-black p-2 rounded-lg border border-zinc-800">{req.document_hash}</p>
+                                      </div>
+                                      <a
+                                        href={`https://ipfs.io/ipfs/${req.document_ipfs_cid}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest text-[10px] bg-blue-500/10 px-3 py-2 rounded-lg transition-colors w-full justify-center"
+                                      >
+                                        View Original Certificate <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    </div>
                                   </div>
-                                  <a
-                                    href={`https://ipfs.io/ipfs/${req.document_ipfs_cid}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest text-[10px] bg-blue-500/10 px-3 py-2 rounded-lg transition-colors w-full justify-center"
-                                  >
-                                    View Original Certificate <ExternalLink className="h-3 w-3" />
-                                  </a>
-                                </div>
-                              </div>
 
-                              <div className="flex gap-3">
-                                <a
-                                  href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
-                                >
-                                  Explorer <ExternalLink className="h-3 w-3" />
-                                </a>
-                                {req.credentials[0].issued_tx_hash && (
-                                  <a
-                                    href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-[10px] font-black uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 border border-zinc-700"
-                                  >
-                                    Explorer <ExternalLink className="h-3 w-3" />
-                                  </a>
-
-                                  {req.credentials[0].issued_tx_hash && (
+                                  <div className="flex gap-3">
                                     <a
-                                      href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                      href={`https://lora.algokit.io/testnet/asset/${req.credentials[0]?.nft_asset_id}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-[10px] font-black uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 border border-zinc-700"
                                     >
-                                      Details <ExternalLink className="h-3 w-3" />
+                                      Explorer <ExternalLink className="h-3 w-3" />
                                     </a>
-                                  )}
+
+                                    {req.credentials[0]?.issued_tx_hash && (
+                                      <a
+                                        href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-[10px] font-black uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 border border-zinc-700"
+                                      >
+                                        Details <ExternalLink className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => deleteMutation.mutate(req.credentials[0]?.nft_asset_id)}
+                              disabled={deleteMutation.isPending || !req.credentials?.[0]}
+                              className="w-full mt-6 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-500 text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3 w-3" /> Delete ZK Record
+                            </button>
+
+                            {/* QR Code Validation block */}
+                            {req.status === 'APPROVED' && (
+                              <div className="flex flex-col items-center justify-center bg-zinc-900 border-2 border-zinc-800 p-4 rounded-xl shadow-inner aspect-square relative group mt-4">
+                                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                                  <div className="bg-white p-3 rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] border-2 border-green-500">
+                                    <QRCodeSVG
+                                      value={`https://ipfs.io/ipfs/${req.document_ipfs_cid}`}
+                                      size={140}
+                                      bgColor={"#ffffff"}
+                                      fgColor={"#000000"}
+                                      level={"H"}
+                                    />
+                                  </div>
+                                  <p className="text-green-500 font-black uppercase text-[9px] tracking-widest mt-4 flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" /> Ready for Scanner
+                                  </p>
                                 </div>
                               </div>
                             )}
                           </div>
                         )}
-
-                                )}
-                                <button
-                                  onClick={() => deleteMutation.mutate(req.credentials[0].nft_asset_id)}
-                                  disabled={deleteMutation.isPending}
-                                  className="flex-1 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-500 text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50"
-                                >
-                                  <Trash2 className="h-3 w-3" /> Delete ZK
-                                </button>
-                              </div>
-
-                              {/* QR Code Validation block */}
-                              {req.status === 'APPROVED' && (
-                                <div className="flex flex-col items-center justify-center bg-zinc-900 border-2 border-zinc-800 p-4 rounded-xl shadow-inner aspect-square relative group">
-                                  <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
-                                    <div className="bg-white p-3 rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.3)] border-2 border-green-500">
-                                      <QRCodeSVG
-                                        value={`https://ipfs.io/ipfs/${req.document_ipfs_cid}`}
-                                        size={140}
-                                        bgColor={"#ffffff"}
-                                        fgColor={"#000000"}
-                                        level={"H"}
-                                      />
-                                    </div>
-                                    <p className="text-green-500 font-black uppercase text-[9px] tracking-widest mt-4 flex items-center gap-1">
-                                      <CheckCircle className="w-3 h-3" /> Ready for Scanner
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -648,60 +640,25 @@ export default function StudentPage() {
 
         {/* AI Mentor Matcher Section */}
 
-        <div className="mt-20">
-          <div className="mb-8">
-            <h2 className="text-3xl font-black uppercase tracking-tighter outfit-bold text-white flex items-center gap-3">
         <div className="mt-12 mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both relative">
           <div className="absolute inset-0 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
 
           <div className="mb-8 relative">
-            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center gap-3 tracking-tight">
+            <h2 className="text-3xl font-black uppercase tracking-tighter outfit-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center gap-3">
               <Sparkles className="h-8 w-8 text-blue-500" />
               AI Mentor Matcher
             </h2>
             <p className="text-zinc-400 mt-2 font-medium">Upload your resume and let our Gemini AI find the perfect alumni mentors based on your skills and background.</p>
           </div>
 
-          <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white">
-            <CardContent className="p-8">
-              <div className="grid lg:grid-cols-3 gap-12">
-                {/* Upload Section */}
-                <div className="col-span-1 space-y-6 lg:border-r-2 border-zinc-800 lg:pr-8">
-                  <div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight outfit-bold flex items-center gap-2">
-                      <span className="bg-blue-500 text-white w-7 h-7 rounded-sm flex items-center justify-center text-sm">1</span>
-                      Upload Resume
-                    </h3>
-                    <p className="text-sm text-zinc-500 mt-2 font-medium">Must be a PDF document containing your work experience and skills.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="resumeDocument" className="text-zinc-400 font-bold uppercase text-[10px] tracking-widest">Resume (PDF)</Label>
-                    <Input
-                      id="resumeDocument"
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                      className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white cursor-pointer h-12 pt-2"
-                    />
-                  </div>
-
-                  <NeoButton
-                    className="w-full"
-                    onClick={() => matchMutation.mutate()}
-                    disabled={!resumeFile || matchMutation.isPending}
-                    hoverText="Find Matches"
-                  >
-                    {matchMutation.isPending ? 'Analyzing with AI...' : 'Find Matches'}
-                  </NeoButton>
-          <Card className="bg-zinc-900/40 border-zinc-800/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white relative overflow-hidden">
             <CardContent className="p-8">
               <div className="grid lg:grid-cols-3 gap-10">
                 {/* Upload Section */}
                 <div className="col-span-1 border-b lg:border-b-0 lg:border-r border-zinc-800/50 pb-8 lg:pb-0 lg:pr-8 flex flex-col justify-center">
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-bold font-mono tracking-tight text-white mb-2 flex items-center gap-2">
+                      <h3 className="text-xl font-black uppercase tracking-tighter outfit-bold text-white mb-2 flex items-center gap-2">
                         <span className="text-blue-500 font-black">01 //</span> Upload Resume
                       </h3>
                       <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold">Must be a PDF document containing your work experience and skills.</p>
@@ -738,20 +695,7 @@ export default function StudentPage() {
 
                 {/* Results Section */}
                 <div className="col-span-2">
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight outfit-bold mb-6 flex items-center gap-2">
-                    <span className="bg-blue-500 text-white w-7 h-7 rounded-sm flex items-center justify-center text-sm">2</span>
-                    Your AI Matches
-                  </h3>
-
-                  {!matches || matches.length === 0 ? (
-                    <div className="h-64 flex items-center justify-center bg-black/40 rounded-2xl border-4 border-dashed border-zinc-800 group hover:border-zinc-700 transition-colors">
-                      <div className="text-center px-4">
-                        <Sparkles className="h-10 w-10 text-zinc-700 mx-auto mb-4 group-hover:text-blue-500 transition-colors" />
-                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">
-                          {matchMutation.isPending ? 'Gemini AI is reading your resume...' : 'Upload your resume to see your top matches.'}
-                        </p>
-                      </div>
-                  <h3 className="text-xl font-bold font-mono tracking-tight text-white mb-6 flex items-center gap-2">
+                  <h3 className="text-xl font-black uppercase tracking-tighter outfit-bold text-white mb-6 flex items-center gap-2">
                     <span className="text-blue-500 font-black">02 //</span> Your AI Matches
                   </h3>
 
@@ -772,29 +716,16 @@ export default function StudentPage() {
                           <p className="text-zinc-500 font-medium max-w-sm">Upload your resume to see your top matches.</p>
                         </div>
                       )}
-                        </div>
+                    </div>
                   ) : (
                     <div className="space-y-6">
                       {matches.map((match: any, idx: number) => (
-                        <div key={idx} className="bg-black/60 p-6 rounded-2xl border-2 border-zinc-800 hover:border-blue-500/50 transition-all duration-300 shadow-xl group">
-                          <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-1">
-                                <h4 className="font-black text-xl text-white uppercase tracking-tight outfit-bold">{match.alumnus?.name}</h4>
-                                {match.matchPercentage && (
-                                  <div className="bg-green-500/10 text-green-500 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-green-500/20 tracking-tighter">
-                                    {match.matchPercentage}% Match
-                                  </div>
-                                )}
-                              </div>
-                              <p className="text-sm font-bold text-blue-400 uppercase tracking-widest leading-none">{match.alumnus?.status}</p>
-
                         <div key={idx} className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-xl hover:border-zinc-700 transition-colors relative overflow-hidden group">
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
                           <div className="flex justify-between items-start mb-4">
                             <div>
-                              <h4 className="font-bold text-xl text-white tracking-tight">{match.alumnus?.name}</h4>
+                              <h4 className="font-black text-xl text-white uppercase tracking-tighter outfit-bold">{match.alumnus?.name}</h4>
                               <p className="text-xs uppercase tracking-widest font-black text-blue-400 mt-1">{match.alumnus?.status}</p>
                             </div>
                             <div className="flex flex-col items-end gap-3">
@@ -803,32 +734,16 @@ export default function StudentPage() {
                                   {match.matchPercentage}% Match
                                 </div>
                               )}
-                              <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white bg-zinc-800 hover:bg-white hover:text-black py-2 px-4 rounded-lg transition-colors">
-                                <UserPlus className="h-3 w-3" /> Connect
-                              </button>
-                            </div>
-                            <NeoButton
-                              onClick={() => { }}
-                              hoverText="Connect"
-                              className="scale-90"
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Connect
-                            </NeoButton>
-                          </div>
-
-                          <div className="bg-blue-500/5 border-l-4 border-blue-500 p-4 mt-6 rounded-r-xl">
-                            <div className="flex items-start gap-3">
-                              <Sparkles className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
-                              <p className="text-sm text-zinc-300 leading-relaxed italic font-medium">
-                                {match.reason}
-                              </p>
+                              <NeoButton
+                                onClick={() => router.push('/alumni')}
+                                hoverText="Connect"
+                                className="scale-90"
+                              >
+                                <UserPlus className="h-4 w-4 mr-2" />
+                                Connect
+                              </NeoButton>
                             </div>
                           </div>
-
-                          <div className="flex flex-wrap gap-2 mt-6">
-                            {match.alumnus?.expertise.map((skill: string, sIdx: number) => (
-                              <span key={sIdx} className="bg-zinc-800 text-zinc-400 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border border-zinc-700 group-hover:border-zinc-600 transition-colors">
 
                           <div className="bg-black/50 p-4 rounded-xl border border-zinc-800 mt-4 relative">
                             <Sparkles className="h-4 w-4 text-zinc-600 absolute top-4 left-4" />

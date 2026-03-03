@@ -1,12 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import '../config/env'; // Ensure dotenv is loaded
 
 export async function generateProfileFromResume(resumeText: string) {
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
         throw new Error("Gemini API Key is not configured.");
     }
 
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
@@ -27,14 +28,16 @@ export async function generateProfileFromResume(resumeText: string) {
     DO NOT wrap the response in markdown blocks like \`\`\`json. Just return the raw JSON string. Ensure it is perfectly valid JSON.
   `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
-
     try {
+        console.log('[AI Profile] Calling Gemini API...');
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text().trim();
+        console.log('[AI Profile] Gemini responded, length:', responseText.length);
+
         const cleanJson = responseText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
         return JSON.parse(cleanJson);
-    } catch (error) {
-        console.error("Failed to parse Gemini response for profile:", responseText);
-        throw new Error("Failed to parse AI profile generation response.");
+    } catch (error: any) {
+        console.error("[AI Profile] Gemini API Error:", error?.message || error);
+        throw new Error(`AI profile generation failed: ${error?.message || 'Unknown error'}`);
     }
 }
